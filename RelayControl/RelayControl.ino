@@ -1,7 +1,3 @@
-//V3: Use millis instead of delay
-//V2: Use for loop to step through each relay
-//V1: Hardcoded steps for each relay
-
 //Connect Relay Control Pins (relay board) to Digital pins (Arduino) as defined below
 //M1: Module 1, M2: Module 2
 //Wire VCC (relay board) to 5.5V (Arduino)
@@ -16,13 +12,13 @@ int M2relayPins[]={22, 24, 26, 28, 30, 32, 34, 36};
 int relayCount=8; //length of relayPins (must be same for M1 & M2)
 
 //Define sample time interval (msec)
-int SAMPLE_TIME = 45000;
+int SAMPLE_TIME = 40000;
 //Define time delay interval (msec) between relays
 int TIME_DELAY = 1000;
 //Initiazize current time variable
-unsigned long currentMillis;
+unsigned int currentMillis;
 //Initialize previous time variable
-long previousMillis = 0;
+int previousMillis = 0;
 
 void setup() {
   //Open Serial port at 9600 Baud
@@ -46,13 +42,25 @@ void loop() {
     digitalWrite(M2relayPins[currentRelay-1], LOW);
     //Define current time
     currentMillis = millis();
-    
-    //Delay 0.1s while waiting for SAMPLE_TIME to finish
+
+    //Delay while waiting for SAMPLE_TIME to finish
     do
     {
-      delay(100); //Delay 0.1s
+      delay(5); //Delay 0.005s
       //Define current time
       currentMillis = millis();
+
+      //Serial.print("current time: ");
+      //Serial.print(currentMillis);
+      //Serial.print(", reference time: ");
+      //Serial.print(previousMillis);
+      //Serial.print(", Diff: ");
+      //Serial.print(currentMillis-previousMillis);
+      //Serial.println("");
+     
+      if((currentMillis-previousMillis)>=SAMPLE_TIME){
+        break;
+      }
     } while((currentMillis-previousMillis)<SAMPLE_TIME);
     
     //Open N.O. relay
