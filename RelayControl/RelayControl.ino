@@ -5,6 +5,7 @@
 
 //To do:
 //End loop after all relays have been tested (move loop to setup, leave empty loop)
+//Remove serial comm and backup if-statement in do-while loop
 
 //Define array of Arduino Pins
 int M1relayPins[]={1, 2, 3, 4, 5, 6, 7, 8};
@@ -12,10 +13,10 @@ int M2relayPins[]={22, 24, 26, 28, 30, 32, 34, 36};
 int relayCount=8; //length of relayPins (must be same for M1 & M2)
 
 //Define sample time interval (msec)
-int SAMPLE_TIME = 40000;
+int SAMPLE_TIME = 60000;
 //Define time delay interval (msec) between relays
 int TIME_DELAY = 1000;
-//Initiazize current time variable
+//Initialize current time variable
 unsigned int currentMillis;
 //Initialize previous time variable
 int previousMillis = 0;
