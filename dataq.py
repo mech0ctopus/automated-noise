@@ -5,17 +5,19 @@ DATAQ DI-245 Functions
 import serial
 from re import sub
 from numpy import linspace
+import struct
+from bitstring import BitArray
 
 def fsr_to_voltage(counts, fsr):
     '''Converts full-scale range and ADC counts to voltage'''
     voltage=fsr*counts/8192
     return voltage
 
-def save_to_text(data, filepath, channel_number):
-    '''Saves voltage readings to text file'''
-    f=open(filepath + '//' + str(channel_number) +'.txt.',mode='w+')
-    f.write(data)
-    f.close()
+def save_to_text(xdata, ydata, filepath, channel_number):
+    '''Saves voltage readings & time to text file'''
+    with open(str(channel_number)+'.txt', 'w') as f:
+        for x,y in zip(xdata,ydata):
+            f.write(str(x)+','+str(y)+",\n")
 
 def connect(port='COM4'):
     '''Setup serial connection per DI-245 Communication Protocol documentation'''
@@ -49,27 +51,35 @@ def populate_scan_list(ser, fsr):
         raise("Undefined FSR")
 
 def read_data(ser,fsr,sample_rate,sample_period):
-        #Check number of bytes in input buffer
+    #Check number of bytes in input buffer
     if ser.in_waiting>0:
         #Response is continuous binary stream of 1x 16 bit (2x bytes) words per measurement.
         #Add 2 for the characters that are filtered out
-        #print('Bytes In Waiting: ' + str(ser.in_waiting))
-        #print('Bits In Waiting: ' + str(ser.in_waiting*8))
-        data=ser.read(2*sample_rate*sample_period+2)
+        data_list=[]
+        data=[]
+        for _ in range(sample_rate*sample_period+1):
+            byte_pair=ser.read(2)
+            struct.unpack('h',byte_pair)
+            data_list.append(str(byte_pair)[2:])
+        for item in data_list:
+            sub('[^A-Za-z0-9]+', '',item)
+            parsed_items=item.split('\\x') 
 
-        #Create string of sample data
-        data=str(data)[4:-1]
-
-        #Remove unwanted characters
-        sub('[^A-Za-z0-9]+', '',data)
-        #Parse string of sample data into list
-        hex_data=data.split('\\x')
-        #Remove empty strings from list
-        hex_data=list(filter(None,hex_data))
-        #Convert data to int16
-        int_data=[int(sample,16) for sample in hex_data]
-        bin_data=[bin(sample)[2:] for sample in int_data]
-
+            for parsed_item in parsed_items:
+                parsed_item=parsed_item.replace('"','')
+                parsed_item=parsed_item.replace("'",'')
+                if parsed_item != '':
+                    data.append(parsed_item)
+                
+        #Remove first entry
+        data=data[1:]
+        data==list(filter(None,data))
+        
+        print(data)
+        
+        #Convert data to int16, then binary
+        bin_data=[bin(int(sample,16))[2:] for sample in data]
+        
         #Analog channel coding (p.10)
         #Read 16 bits & Create words
         words=[]
@@ -101,7 +111,7 @@ def read_data(ser,fsr,sample_rate,sample_period):
         voltage=[fsr_to_voltage(adc_count,fsr) for adc_count in adc_counts]
         voltage=[round(sample,4) for sample in voltage]
         time=linspace(0,sample_period,num=sample_rate*sample_period)
-        
+        print(voltage)
         return voltage, time
         
 def set_sample_rate(ser):
