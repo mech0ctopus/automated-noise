@@ -5,8 +5,6 @@ DATAQ DI-245 Functions
 import serial
 from re import sub
 from numpy import linspace
-import struct
-from bitstring import BitArray
 
 def fsr_to_voltage(counts, fsr):
     '''Converts full-scale range and ADC counts to voltage'''
@@ -36,17 +34,17 @@ def populate_scan_list(ser, fsr):
         #Enable Channel 0 for ±5V range as first scan list member
         #Analog in, Channel 0, Mode=0, Range=1, ±5V, FSR=011
         #Define value: 0000101100000000=2816 (bin=dec)
-        ser.write(b'chn 0 2816')
+        ser.write(bytes(b'chn 0 2816'))
     elif fsr==1:
         #Enable Channel 0 for ±1V range as first scan list member
         #Analog in, Channel 0, Mode=0, Range=1, ±1V, FSR=101
         #Define value: 0000110100000000=3328 (bin=dec)
-        ser.write(b'chn 0 3328')
+        ser.write(bytes(b'chn 0 3328'))
     elif fsr==0.5:
         #Enable Channel 0 for ±500mV range as first scan list member
         #Analog in, Channel 0, Mode=0, Range=0, ±500mV, FSR=000
         #Define value: 0000000000000000=0 (bin=dec)
-        ser.write(b'chn 0 0')
+        ser.write(bytes(b'chn 0 0'))
     else:
         raise("Undefined FSR")
 
@@ -55,11 +53,12 @@ def read_data(ser,fsr,sample_rate,sample_period):
     if ser.in_waiting>0:
         #Response is continuous binary stream of 1x 16 bit (2x bytes) words per measurement.
         #Add 2 for the characters that are filtered out
+        hex_data_list=[]
         data_list=[]
         data=[]
         for _ in range(sample_rate*sample_period+1):
             byte_pair=ser.read(2)
-            struct.unpack('h',byte_pair)
+            hex_data_list.append(byte_pair)
             data_list.append(str(byte_pair)[2:])
         for item in data_list:
             sub('[^A-Za-z0-9]+', '',item)
@@ -75,6 +74,8 @@ def read_data(ser,fsr,sample_rate,sample_period):
         data=data[1:]
         data==list(filter(None,data))
         
+        print(hex_data_list)
+        print(data_list)
         print(data)
         
         #Convert data to int16, then binary
@@ -118,4 +119,4 @@ def set_sample_rate(ser):
     '''Set sample rate for one channel to 200 Hz'''
     #xrate=200, burst sample rate per channel = 200Hz
     #SF=8000/200-1=39.  SF=111001, Sinc4=0, AF=0, B=200. B=0000
-    ser.write(b'xrate 57 200')
+    ser.write(bytes(b'xrate 57 200'))
