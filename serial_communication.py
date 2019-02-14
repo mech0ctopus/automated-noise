@@ -10,21 +10,35 @@ TODO: Make sure sample size is correct
 
 """
 
-from time import sleep
-from serial import SerialException
-import matplotlib.pyplot as plt
 import dataq
+import matplotlib.pyplot as plt
+import RPi.GPIO as GPIO
+from serial import SerialException
+from time import sleep
 
 SAMPLE_PERIOD=5 #seconds
+TIME_DELAY=1 #seconds
 SAMPLE_RATE=200 #Hz
 FULL_SCALE_RANGE=0.5 #0.5 seems to work well
 TEST_CURRENT=0.8 #Amps
-CHANNEL_NUMBER=1
+NOISE_DATA_FOLDER=r'/home/pi/Desktop/NoiseData'
+
+#Define list of pins to control
+pins=[3,5,7]
+
+#Set Pin Numbering mode
+GPIO.setmode(GPIO.BOARD)
+#Define control states
+off=GPIO.HIGH
+on=GPIO.LOW
+#Setup pins & set initial state
+GPIO.setup(pins, GPIO.OUT)
+GPIO.output(pins,GPIO.HIGH)
 
 #Initialize connection to DATAQ
 try:
     #Initialize connection to DATAQ
-    ser=dataq.connect()
+    ser=dataq.connect(port='/dev/ttyUSB0/')
     sleep(1)
     #Flush input buffer
     ser.reset_input_buffer()    
@@ -36,20 +50,29 @@ try:
     sleep(1)
     #Send "Start Scan" (S1) ASCII command
     ser.write(bytes(b'S1'))
-    sleep(SAMPLE_PERIOD)
-    #Read data
-    voltage, time=dataq.read_data(ser,FULL_SCALE_RANGE,SAMPLE_RATE,SAMPLE_PERIOD)  
-    #Print & Plot Results
-    print('Sample Rate: ' + str(len(voltage)/SAMPLE_PERIOD) + ' Hz')
-    print('Noise: ' + str(round((max(voltage)-min(voltage))/TEST_CURRENT,4)) + '  Ω')
-    plt.plot(time, voltage); plt.xlabel('Time (s)'); plt.ylabel('Voltage (V)');
-    #Save results
-    dataq.save_to_text(time, voltage, r'C:\Users\cmiller\Documents\GitHub\automated-noise',CHANNEL_NUMBER)
+    
+    for idx, _ in enumerate(pins):
+        #Turn pin on for sample period, then off
+        GPIO.output(pins[idx],on)
+        sleep(SAMPLE_PERIOD)
+        GPIO.output(pins[idx],off)
+        #Read data
+        voltage, time=dataq.read_data(ser,FULL_SCALE_RANGE,SAMPLE_RATE,SAMPLE_PERIOD)  
+        #Print & Plot Results
+        print('Sample Rate: ' + str(len(voltage)/SAMPLE_PERIOD) + ' Hz')
+        print('Noise: ' + str(round((max(voltage)-min(voltage))/TEST_CURRENT,4)) + '  Ω')
+        plt.plot(time, voltage); plt.xlabel('Time (s)'); plt.ylabel('Voltage (V)');
+        #Save results
+        dataq.save_to_text(time, voltage, NOISE_DATA_FOLDER, idx)
+        sleep(TIME_DELAY) 
 except SerialException:
-    print("Failed to connect to DATAQ")    
+    print("Failed to connect to DATAQ")
+    GPIO.cleanup()
 except KeyboardInterrupt:
     print("Program Exit: Keyboard Interrupt")
+    GPIO.cleanup()
 finally:
+    GPIO.cleanup()
     #Send "Stop Scan" S0 ASCII command
     ser.write(bytes(b'S0'))
     ser.close()
