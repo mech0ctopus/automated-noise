@@ -6,8 +6,9 @@ Must be on the same WiFi network as RPi.
 """
 
 import paramiko
+from time import sleep
 
-CMD='ls'
+commands=['python3 /home/pi/Desktop/automated-noise/relay_control.py']
 
 # Initialize SSH connection
 ssh = paramiko.SSHClient()
@@ -17,11 +18,14 @@ ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 try:
     # Connect to Pi over local network
     ssh.connect("10.1.11.68",username="pi",password="raspberry")
+    print('Successfully Connected')
 except:
     print("Attempt to Connect Failed")
     
-# Send command to Pi
-ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(CMD)
-
-# Print response from Pi
-print(ssh_stdout.read())
+for cmd in commands:
+    # Send command to Pi
+    ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(cmd)
+    # Print response from Pi
+    print(ssh_stdout.read())
+    ssh_stdin.flush()
+    sleep(2)

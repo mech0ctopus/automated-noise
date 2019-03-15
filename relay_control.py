@@ -1,6 +1,9 @@
 import RPi.GPIO as GPIO
 from time import sleep
 
+# Pinout RPi 3
+# https://raspberrypi.stackexchange.com/questions/12966/what-is-the-difference-between-board-and-bcm-for-gpio-pin-numbering
+
 #Define list of pins to control
 pins=[3,5,7]
 #Define control states
