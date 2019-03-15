@@ -21,7 +21,7 @@ TIME_DELAY=1 #seconds
 SAMPLE_RATE=200 #Hz
 FULL_SCALE_RANGE=0.5 #0.5 seems to work well
 TEST_CURRENT=0.8 #Amps
-NOISE_DATA_FOLDER=r'/home/pi/Desktop/NoiseData'
+NOISE_DATA_FOLDER=r'C:\Users\cmiller\Desktop\Noise'
 
 #Define list of pins to control
 pins=[3,5,7]
@@ -38,7 +38,7 @@ GPIO.output(pins,GPIO.HIGH)
 #Initialize connection to DATAQ
 try:
     #Initialize connection to DATAQ
-    ser=dataq.connect(port='/dev/ttyUSB0/')
+    ser=dataq.connect()
     sleep(1)
     #Flush input buffer
     ser.reset_input_buffer()    
